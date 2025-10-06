@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech-to-Text Wake/Sleep Module Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .status.listening {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 2px solid #1976d2;
+        }
+        
+        .status.transcribing {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            border: 2px solid #2e7d32;
+        }
+        
+        .status.stopped {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 2px solid #c62828;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        button {
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #1565c0;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .config {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .config label {
+            display: block;
+            margin: 10px 0 5px 0;
+            font-weight: bold;
+        }
+        
+        .config input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            box-sizing: border-box;
+        }
+        
+        .transcript-area {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            min-height: 200px;
+            margin: 20px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-y: auto;
+        }
+        
+        .wake-sleep-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        
+        .indicator {
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            text-align: center;
+            flex: 1;
+            margin: 0 10px;
+        }
+        
+        .wake-indicator {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            border: 2px solid #4caf50;
+        }
+        
+        .sleep-indicator {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 2px solid #f44336;
+        }
+        
+        .instructions {
+            background-color: #fff3e0;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Speech-to-Text Wake/Sleep Module Demo</h1>
+        
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li>Click "Start Listening" to begin</li>
+                <li>Say the wake word (default: "Hi") to start transcription</li>
+                <li>Speak normally - your speech will be transcribed</li>
+                <li>Say the sleep word (default: "Bye") to stop transcription</li>
+                <li>The module will keep listening for the wake word again</li>
+            </ol>
+        </div>
+        
+        <div class="config">
+            <h3>⚙️ Configuration</h3>
+            <label for="wakeWord">Wake Word:</label>
+            <input type="text" id="wakeWord" value="hi" placeholder="Enter wake word">
+            
+            <label for="sleepWord">Sleep Word:</label>
+            <input type="text" id="sleepWord" value="bye" placeholder="Enter sleep word">
+            
+            <label for="language">Language:</label>
+            <input type="text" id="language" value="en-US" placeholder="Language code (e.g., en-US)">
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn">Start Listening</button>
+            <button id="stopBtn" disabled>Stop Listening</button>
+            <button id="clearBtn">Clear Transcript</button>
+        </div>
+        
+        <div id="status" class="status stopped">Status: Stopped</div>
+        
+        <div class="wake-sleep-indicator">
+            <div class="indicator wake-indicator">
+                Wake Word: <span id="currentWakeWord">hi</span>
+            </div>
+            <div class="indicator sleep-indicator">
+                Sleep Word: <span id="currentSleepWord">bye</span>
+            </div>
+        </div>
+        
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <h3>📝 Live Transcript:</h3>
+        <div id="transcript" class="transcript-area">Transcript will appear here...</div>
+        
+        <div id="logs" style="margin-top: 20px;">
+            <h3>📊 Activity Log:</h3>
+            <div id="logArea" class="transcript-area" style="min-height: 100px;">Activity logs will appear here...</div>
+        </div>
+    </div>
+
+    <script src="../src/SpeechToTextModule.js"></script>
+    <script>
+        let speechModule = null;
+        
+        // DOM elements
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const statusDiv = document.getElementById('status');
+        const transcriptDiv = document.getElementById('transcript');
+        const errorDiv = document.getElementById('error');
+        const logArea = document.getElementById('logArea');
+        const wakeWordInput = document.getElementById('wakeWord');
+        const sleepWordInput = document.getElementById('sleepWord');
+        const languageInput = document.getElementById('language');
+        const currentWakeWordSpan = document.getElementById('currentWakeWord');
+        const currentSleepWordSpan = document.getElementById('currentSleepWord');
+        
+        // Initialize module
+        function initializeModule() {
+            try {
+                speechModule = new SpeechToTextModule({
+                    wakeWord: wakeWordInput.value,
+                    sleepWord: sleepWordInput.value,
+                    language: languageInput.value
+                });
+                
+                // Set up callbacks
+                speechModule
+                    .onWakeWordDetected((word) => {
+                        addLog(`🟢 Wake word detected: "${word}" - Transcription ACTIVATED`);
+                    })
+                    .onSleepWordDetected((word) => {
+                        addLog(`🔴 Sleep word detected: "${word}" - Transcription DEACTIVATED`);
+                    })
+                    .onTranscript((data) => {
+                        updateTranscript(data);
+                    })
+                    .onError((error) => {
+                        showError(`Error: ${error}`);
+                        addLog(`❌ Error: ${error}`);
+                    })
+                    .onStatusChange((status) => {
+                        updateStatus(status);
+                        addLog(`📊 Status changed to: ${status}`);
+                    });
+                
+                hideError();
+                addLog('✅ Speech module initialized successfully');
+                
+            } catch (error) {
+                showError(`Failed to initialize: ${error.message}`);
+                addLog(`❌ Initialization failed: ${error.message}`);
+            }
+        }
+        
+        // Update status display
+        function updateStatus(status) {
+            statusDiv.className = `status ${status}`;
+            
+            switch(status) {
+                case 'listening':
+                    statusDiv.textContent = `🎧 Listening for wake word "${speechModule.config.wakeWord}"...`;
+                    break;
+                case 'transcribing':
+                    statusDiv.textContent = `🎤 Transcribing... (Say "${speechModule.config.sleepWord}" to stop)`;
+                    break;
+                case 'stopped':
+                    statusDiv.textContent = '⏹️ Stopped';
+                    break;
+                default:
+                    statusDiv.textContent = `Status: ${status}`;
+            }
+        }
+        
+        // Update transcript display
+        function updateTranscript(data) {
+            const timestamp = new Date(data.timestamp).toLocaleTimeString();
+            const confidence = data.confidence ? ` (${Math.round(data.confidence * 100)}%)` : '';
+            const finalIndicator = data.isFinal ? '✓' : '...';
+            
+            // For interim results, update the last line
+            if (!data.isFinal) {
+                const lines = transcriptDiv.textContent.split('\n');
+                if (lines[lines.length - 1].includes('...')) {
+                    lines[lines.length - 1] = `[${timestamp}] ${data.transcript}${confidence} ${finalIndicator}`;
+                } else {
+                    lines.push(`[${timestamp}] ${data.transcript}${confidence} ${finalIndicator}`);
+                }
+                transcriptDiv.textContent = lines.join('\n');
+            } else {
+                // For final results, add a new line
+                const lines = transcriptDiv.textContent.split('\n');
+                if (lines[lines.length - 1].includes('...')) {
+                    lines[lines.length - 1] = `[${timestamp}] ${data.transcript}${confidence} ${finalIndicator}`;
+                } else {
+                    lines.push(`[${timestamp}] ${data.transcript}${confidence} ${finalIndicator}`);
+                }
+                transcriptDiv.textContent = lines.join('\n');
+            }
+            
+            // Auto-scroll to bottom
+            transcriptDiv.scrollTop = transcriptDiv.scrollHeight;
+        }
+        
+        // Add log entry
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const currentLogs = logArea.textContent === 'Activity logs will appear here...' ? '' : logArea.textContent;
+            logArea.textContent = currentLogs + `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+        
+        // Show error
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        // Hide error
+        function hideError() {
+            errorDiv.style.display = 'none';
+        }
+        
+        // Update configuration display
+        function updateConfigDisplay() {
+            currentWakeWordSpan.textContent = wakeWordInput.value;
+            currentSleepWordSpan.textContent = sleepWordInput.value;
+        }
+        
+        // Event listeners
+        startBtn.addEventListener('click', () => {
+            if (!speechModule) {
+                initializeModule();
+            }
+            
+            // Update config if changed
+            speechModule.updateConfig({
+                wakeWord: wakeWordInput.value,
+                sleepWord: sleepWordInput.value,
+                language: languageInput.value
+            });
+            
+            updateConfigDisplay();
+            speechModule.startListening();
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            addLog('🎬 Started listening...');
+        });
+        
+        stopBtn.addEventListener('click', () => {
+            if (speechModule) {
+                speechModule.stopListening();
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            addLog('⏹️ Stopped listening');
+        });
+        
+        clearBtn.addEventListener('click', () => {
+            transcriptDiv.textContent = 'Transcript will appear here...';
+            logArea.textContent = 'Activity logs will appear here...';
+            addLog('🧹 Cleared transcript and logs');
+        });
+        
+        // Update config display on input change
+        wakeWordInput.addEventListener('input', updateConfigDisplay);
+        sleepWordInput.addEventListener('input', updateConfigDisplay);
+        
+        // Check browser support
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            showError('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+            startBtn.disabled = true;
+        }
+        
+        // Initialize display
+        updateConfigDisplay();
+        addLog('🚀 Demo loaded - Click "Start Listening" to begin');
+    </script>
+</body>
+</html>
