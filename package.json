@@ -1,0 +1,52 @@
+{
+  "name": "speech-to-text-wake-sleep-module",
+  "version": "1.0.0",
+  "description": "Real-time speech-to-text transcription module with wake/sleep word detection for mobile app integration",
+  "main": "src/SpeechToTextModule.js",
+  "react-native": "src/SpeechToTextModuleRN.js",
+  "scripts": {
+    "demo": "open demo/index.html",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "speech-to-text",
+    "voice-recognition",
+    "wake-word",
+    "sleep-word",
+    "real-time",
+    "transcription",
+    "react-native",
+    "mobile",
+    "voice-activation"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1234-ad/speech-to-text-wake-sleep-module.git"
+  },
+  "bugs": {
+    "url": "https://github.com/1234-ad/speech-to-text-wake-sleep-module/issues"
+  },
+  "homepage": "https://github.com/1234-ad/speech-to-text-wake-sleep-module#readme",
+  "peerDependencies": {
+    "@react-native-voice/voice": "^3.2.4",
+    "react": ">=16.8.0",
+    "react-native": ">=0.60.0"
+  },
+  "devDependencies": {
+    "react": "^18.2.0",
+    "react-native": "^0.72.0",
+    "@react-native-voice/voice": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "src/",
+    "examples/",
+    "demo/",
+    "README.md",
+    "LICENSE"
+  ]
+}
